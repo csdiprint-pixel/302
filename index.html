@@ -87,7 +87,7 @@
             padding-bottom: 15px;
         }
 
-        .door-notice-left, .door-notice-right {
+        .door-notice-right {
             width: 45px;
             font-size: 13px;
             font-weight: bold;
@@ -97,9 +97,8 @@
             text-align: center;
             box-sizing: border-box;
             padding-top: 2px;
-        }
-        .door-notice-left { justify-content: flex-start; } 
-        .door-notice-right { justify-content: space-between; } 
+            justify-content: space-between;
+        } 
 
         .seat-table {
             border-collapse: separate;
@@ -268,10 +267,6 @@
             </div>
 
             <div class="classroom-grid">
-                <div class="door-notice-left">
-                    <div>前門</div>
-                </div>
-
                 <table class="seat-table" id="classroomSeats">
                 </table>
 
@@ -372,7 +367,6 @@
     let adminPassword = localStorage.getItem("seat_admin_pwd") || "302"; 
     let currentClassID = getUrlParam("class") || ""; 
 
-    // 從本地庫讀取
     let dbTitles = JSON.parse(localStorage.getItem("seat_db_titles")) || {};
     let dbRosters = JSON.parse(localStorage.getItem("seat_db_rosters")) || {};
     let dbFilledData = JSON.parse(localStorage.getItem("seat_db_filled")) || {};
@@ -507,9 +501,9 @@
             localStorage.setItem("seat_db_filled", JSON.stringify(dbFilledData));
 
             const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
-            alert(`【開班成功】\n班期 ${currentClassID} 已完成建立與解析！\n網頁將自動刷新切換。`);
+            alert(`【開班成功】\n班期 ${currentClassID} 已完成建立！`);
             
-            // 網址回歸最乾淨狀態，保證二維碼絕對清晰好掃
+            // 絕不再帶入任何中文字加密長參數，網址絕對純淨
             window.location.href = `${baseUrl}?class=${currentClassID}`;
 
         } catch (err) {
@@ -517,8 +511,9 @@
         }
     }
 
-    // 正確修復：只傳送乾淨的網址參數，二維碼絕對生成成功且清晰
+    // 徹底鎖定生成規則：只傳網址與六位數代碼，保證二維碼線條精簡、100%成功好掃
     function generateClassQRCode(classId) {
+        if(!classId) return;
         const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
         const targetClassUrl = `${baseUrl}?class=${classId}`;
 
@@ -526,7 +521,6 @@
         document.getElementById("qrcodeUrl").innerText = targetClassUrl;
         document.getElementById("qrcode").innerHTML = "";
 
-        // 建立最基礎、最高容錯的標準二維碼
         new QRCode(document.getElementById("qrcode"), {
             text: targetClassUrl,
             width: 160,
@@ -681,10 +675,10 @@
         window.print();
     }
 
+    // 核心邏輯修正：只要當前網址帶有有效 class 參數，無論如何重新整理，立即在此初始化生成清晰的二維碼
     window.onload = function() {
         renderSeatsGrid();
-        // 如果當前有開班狀態，切換到後台時直接顯示清晰的 QR Code
-        if (currentClassID && currentPage === "admin") {
+        if (currentClassID) {
             generateClassQRCode(currentClassID);
         }
     };

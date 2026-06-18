@@ -225,14 +225,14 @@
     </div>
 
 <script>
-    // 確保使用相同的 Firebase，但這份程式只服務 302 教室
+    // 確保使用相同的 Firebase，但這份程式將獨立劃分出 room302 節點隔離資料
     const FIREBASE_URL = "https://seat-302-115552-default-rtdb.firebaseio.com";
 
     let currentPage = "student"; 
     let activeSeatId = "";      
     let isVerifyVisualOn = false; 
 
-    let adminPassword = "302"; // 預設密碼改為 302
+    let adminPassword = "302"; // 預設密碼為 302
     let currentClassID = getUrlParam("class") || ""; 
 
     // 使用 302 專屬的 localStorage Key
@@ -290,7 +290,8 @@
     function startRealtimeSync() {
         if (!currentClassID) return;
         
-        const syncUrl = `${FIREBASE_URL}/classes/${currentClassID}/seats.json`;
+        // 修正點：將資料路徑改為 room302 以隔離 403 教室資料
+        const syncUrl = `${FIREBASE_URL}/room302/${currentClassID}/seats.json`;
         const eventSource = new EventSource(syncUrl);
 
         eventSource.onmessage = function(event) {
@@ -315,7 +316,8 @@
     async function fetchSeatsDataLegacy() {
         if (!currentClassID) return;
         try {
-            const res = await fetch(`${FIREBASE_URL}/classes/${currentClassID}/seats.json`);
+            // 修正點：將資料路徑改為 room302
+            const res = await fetch(`${FIREBASE_URL}/room302/${currentClassID}/seats.json`);
             const data = await res.json();
             studentFilledData = data || {};
             renderSeatsGrid();
@@ -325,7 +327,8 @@
     async function updateCloudSeat(seatId, name) {
         if (!currentClassID) return true;
         try {
-            let url = `${FIREBASE_URL}/classes/${currentClassID}/seats/${seatId}.json`;
+            // 修正點：將資料路徑改為 room302
+            let url = `${FIREBASE_URL}/room302/${currentClassID}/seats/${seatId}.json`;
             if (name === null) {
                 await fetch(url, { method: 'DELETE' });
             } else {
@@ -362,9 +365,8 @@
         }
     }
 
-    function closeLoginModal() { document.getElementById("loginModal").style.display = "none"; }
+    closeLoginModal = function() { document.getElementById("loginModal").style.display = "none"; }
 
-    // ★ 存取 302 的白名單
     async function saveAccountWhitelist() {
         const inputStr = document.getElementById("whitelistInput").value.trim();
         let accounts = [];
@@ -522,8 +524,9 @@
             localStorage.setItem("seat_db_titles_302", JSON.stringify(dbTitles));
             localStorage.setItem("seat_db_rosters_302", JSON.stringify(dbRosters));
 
-            await fetch(`${FIREBASE_URL}/classes/${currentClassID}/title.json`, { method: 'PUT', body: JSON.stringify(classHeaderTitle) });
-            await fetch(`${FIREBASE_URL}/classes/${currentClassID}/roster.json`, { method: 'PUT', body: JSON.stringify(officialRoster) });
+            // 修正點：將寫入雲端的路徑改為 room302
+            await fetch(`${FIREBASE_URL}/room302/${currentClassID}/title.json`, { method: 'PUT', body: JSON.stringify(classHeaderTitle) });
+            await fetch(`${FIREBASE_URL}/room302/${currentClassID}/roster.json`, { method: 'PUT', body: JSON.stringify(officialRoster) });
 
             const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
             alert(`【開班成功】\n302教室班期 ${currentClassID} 已完成建立！`);
@@ -556,7 +559,8 @@
         if (!confirm(confirmMsg)) { return; }
 
         try {
-            await fetch(`${FIREBASE_URL}/classes/${currentClassID}.json`, { method: 'DELETE' });
+            // 修正點：將資料路徑改為 room302
+            await fetch(`${FIREBASE_URL}/room302/${currentClassID}.json`, { method: 'DELETE' });
 
             delete dbTitles[currentClassID];
             delete dbRosters[currentClassID];
@@ -607,7 +611,7 @@
         document.getElementById("seatModal").style.display = "flex";
     }
 
-    function closeSelectModal() { document.getElementById("seatModal").style.display = "none"; }
+    closeSelectModal = function() { document.getElementById("seatModal").style.display = "none"; }
 
     async function clearCurrentSeat() {
         if (confirm(`確定要取消您的座位嗎？`)) {
@@ -630,7 +634,8 @@
         }
 
         try {
-            const noCacheUrl = `${FIREBASE_URL}/classes/${currentClassID}/seats.json?t=${new Date().getTime()}`;
+            // 修正點：將防搶位驗證的路徑改為 room302
+            const noCacheUrl = `${FIREBASE_URL}/room302/${currentClassID}/seats.json?t=${new Date().getTime()}`;
             const res = await fetch(noCacheUrl, { cache: "no-store" });
             const latestClassData = await res.json() || {};
 
@@ -732,7 +737,8 @@
 
         if (currentClassID) {
             try {
-                const tRes = await fetch(`${FIREBASE_URL}/classes/${currentClassID}/title.json?t=${new Date().getTime()}`, { cache: "no-store" });
+                // 修正點：將資料路徑改為 room302
+                const tRes = await fetch(`${FIREBASE_URL}/room302/${currentClassID}/title.json?t=${new Date().getTime()}`, { cache: "no-store" });
                 const tData = await tRes.json();
                 if(tData) {
                     classHeaderTitle = tData;
@@ -741,7 +747,8 @@
             } catch(e){}
 
             try {
-                const rRes = await fetch(`${FIREBASE_URL}/classes/${currentClassID}/roster.json?t=${new Date().getTime()}`, { cache: "no-store" });
+                // 修正點：將資料路徑改為 room302
+                const rRes = await fetch(`${FIREBASE_URL}/room302/${currentClassID}/roster.json?t=${new Date().getTime()}`, { cache: "no-store" });
                 const rData = await rRes.json();
                 if(rData) {
                     officialRoster = rData;

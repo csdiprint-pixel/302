@@ -238,7 +238,7 @@
     </div>
 
 <script>
-    // ★ 1. 這裡加上毒素過濾器 (安全位置)
+    // ★ 毒素過濾器 
     function escapeHTML(str) {
         if (!str) return "";
         return str.replace(/[&<>'"]/g, function(tag) {
@@ -247,7 +247,8 @@
         });
     }
 
-    const FIREBASE_URL = "https://seat-302-115552-default-rtdb.firebaseio.com";
+    // ★ 已更新為您最新的專屬資料庫網址
+    const FIREBASE_URL = "https://csdi-seating-system-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     let currentPage = "student"; 
     let activeSeatId = "";      
@@ -644,7 +645,6 @@
         }
     }
 
-    // ★ 2. 一般學員劃位使用防毒過濾器
     async function saveStudentSeat() {
         const rawName = document.getElementById("studentName").value.trim();
         const name = escapeHTML(rawName); // 消毒處理
@@ -679,7 +679,6 @@
         await updateCloudSeat(activeSeatId, name);
     }
 
-    // ★ 3. 後台管理員輸入使用防毒過濾器
     async function adminForceAssignSeat() {
         if (!currentClassID) { alert("請先啟動班期！"); return; }
         const seatId = document.getElementById("modSeatId").value.trim();

@@ -1,10 +1,3 @@
-function escapeHTML(str) {
-    if (!str) return "";
-    return str.replace(/[&<>'"]/g, function(tag) {
-        const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-        return charsToReplace[tag] || tag;
-    });
-}
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -245,7 +238,16 @@ function escapeHTML(str) {
     </div>
 
 <script>
-    const FIREBASE_URL = "https://csdi-seating-system-default-rtdb.asia-southeast1.firebasedatabase.app";
+    // ★ 1. 這裡加上毒素過濾器 (安全位置)
+    function escapeHTML(str) {
+        if (!str) return "";
+        return str.replace(/[&<>'"]/g, function(tag) {
+            const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+            return charsToReplace[tag] || tag;
+        });
+    }
+
+    const FIREBASE_URL = "https://seat-302-115552-default-rtdb.firebaseio.com";
 
     let currentPage = "student"; 
     let activeSeatId = "";      
@@ -261,14 +263,6 @@ function escapeHTML(str) {
     let officialRoster = dbRosters[currentClassID] || [];
     let studentFilledData = {}; 
 
-    // 毒素過濾器：把所有惡意符號變成純文字
-function escapeHTML(str) {
-    if (!str) return "";
-    return str.replace(/[&<>'"]/g, function(tag) {
-        const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-        return charsToReplace[tag] || tag;
-    });
-}
     function maskName(name) {
         if (!name) return "";
         if (name.length === 2) return name[0] + "Ｏ";
@@ -312,7 +306,6 @@ function escapeHTML(str) {
         });
     }
 
-    // ★ 關鍵修復 1：即時踢出連線中的使用者
     function startRealtimeSync() {
         if (!currentClassID) return;
         
@@ -323,7 +316,6 @@ function escapeHTML(str) {
             const data = JSON.parse(event.data);
             
             if (data && data.path === "/") {
-                // 如果接收到的資料是 null，代表整個班期或座位表已被刪除
                 if (data.data === null) {
                     alert("⚠️ 此班期已被管理員強制關閉並清除資料！自動返回首頁。");
                     delete dbTitles[currentClassID];
@@ -331,8 +323,6 @@ function escapeHTML(str) {
                     localStorage.setItem("seat_db_titles_302", JSON.stringify(dbTitles));
                     localStorage.setItem("seat_db_rosters_302", JSON.stringify(dbRosters));
                     localStorage.removeItem(`mySeat_302_${currentClassID}`);
-                    
-                    // 強制洗掉網址列上的 ?class= 參數
                     window.location.replace(window.location.pathname);
                     return;
                 }
@@ -582,7 +572,6 @@ function escapeHTML(str) {
         });
     }
 
-    // ★ 關鍵修復 2：按鈕清除後強制用 replace 覆蓋網址歷史，絕對不留痕跡
     async function clearCurrentClassData() {
         if (!currentClassID) {
             alert("目前沒有載入任何班期！");
@@ -603,7 +592,6 @@ function escapeHTML(str) {
 
             alert("✅ 班期資料已徹底清除！將自動回到乾淨首頁。");
 
-            // 使用 location.replace 強制覆寫當前網址歷史，拔除 ?class= 參數
             window.location.replace(window.location.pathname);
 
         } catch (error) {
@@ -656,9 +644,11 @@ function escapeHTML(str) {
         }
     }
 
+    // ★ 2. 一般學員劃位使用防毒過濾器
     async function saveStudentSeat() {
         const rawName = document.getElementById("studentName").value.trim();
-        const name = escapeHTML(rawName); // 送出前先進行消毒
+        const name = escapeHTML(rawName); // 消毒處理
+
         if (!name) { alert("請輸入姓名！"); return; }
 
         const myBookedSeat = localStorage.getItem(`mySeat_302_${currentClassID}`);
@@ -689,10 +679,12 @@ function escapeHTML(str) {
         await updateCloudSeat(activeSeatId, name);
     }
 
+    // ★ 3. 後台管理員輸入使用防毒過濾器
     async function adminForceAssignSeat() {
         if (!currentClassID) { alert("請先啟動班期！"); return; }
         const seatId = document.getElementById("modSeatId").value.trim();
-        const studentName = document.getElementById("modStudentName").value.trim();
+        const rawName = document.getElementById("modStudentName").value.trim();
+        const studentName = escapeHTML(rawName); // 消毒處理
 
         if (!seatId || !studentName) { alert("請輸入座位編號與姓名！"); return; }
         if (!/^([1-9]|1[0-2])-([1-9]|10)$/.test(seatId)) { alert("座位格式錯誤 (302教室正確為 1-1 到 12-10)！"); return; }
@@ -759,7 +751,6 @@ function escapeHTML(str) {
         window.print();
     }
 
-    // ★ 關鍵修復 3：啟動時檢查雲端，若班期已被刪除，強制洗白網址並導回首頁
     window.onload = async function() {
         try {
             const noCacheUrl = `${FIREBASE_URL}/settings/pwd_302.json?t=${new Date().getTime()}`;
@@ -770,11 +761,9 @@ function escapeHTML(str) {
 
         if (currentClassID) {
             try {
-                // 檢查雲端這筆班期資料是否還活著
                 const tRes = await fetch(`${FIREBASE_URL}/room302/${currentClassID}/title.json?t=${new Date().getTime()}`, { cache: "no-store" });
                 const tData = await tRes.json();
                 
-                // 如果回傳 null，代表這個代碼的班期已經被清除了
                 if(tData === null) {
                     alert("⛔ 此班期代碼已失效或資料已被徹底清除！自動導回首頁。");
                     delete dbTitles[currentClassID];
@@ -783,9 +772,8 @@ function escapeHTML(str) {
                     localStorage.setItem("seat_db_rosters_302", JSON.stringify(dbRosters));
                     localStorage.removeItem(`mySeat_302_${currentClassID}`);
                     
-                    // 強制用乾淨網址覆寫，抹除歷史紀錄
                     window.location.replace(window.location.pathname);
-                    return; // 終止後續執行
+                    return; 
                 } else {
                     classHeaderTitle = tData;
                     dbTitles[currentClassID] = classHeaderTitle;

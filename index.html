@@ -261,6 +261,14 @@ function escapeHTML(str) {
     let officialRoster = dbRosters[currentClassID] || [];
     let studentFilledData = {}; 
 
+    // 毒素過濾器：把所有惡意符號變成純文字
+function escapeHTML(str) {
+    if (!str) return "";
+    return str.replace(/[&<>'"]/g, function(tag) {
+        const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+        return charsToReplace[tag] || tag;
+    });
+}
     function maskName(name) {
         if (!name) return "";
         if (name.length === 2) return name[0] + "Ｏ";
@@ -649,7 +657,8 @@ function escapeHTML(str) {
     }
 
     async function saveStudentSeat() {
-        const name = document.getElementById("studentName").value.trim();
+        const rawName = document.getElementById("studentName").value.trim();
+        const name = escapeHTML(rawName); // 送出前先進行消毒
         if (!name) { alert("請輸入姓名！"); return; }
 
         const myBookedSeat = localStorage.getItem(`mySeat_302_${currentClassID}`);

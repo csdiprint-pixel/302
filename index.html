@@ -17,7 +17,6 @@
             --volunteer-text: #d68910;
             --status-match: #d4edda;
             --status-mismatch: #f8d7da;
-            --aisle-bg: #e9ecef; /* 走道專屬底色 */
         }
 
         /* 整體基礎字體放大 */
@@ -75,13 +74,14 @@
         .seat-table td.verified-error { background-color: var(--status-mismatch) !important; color: #721c24 !important; border-color: #f5c6cb; }
         .seat-table td.volunteer-seat { background-color: var(--volunteer-bg); color: var(--volunteer-text); border: 1px solid var(--volunteer-text); font-size: 20px; cursor: default; }
 
-        /* 走道專屬樣式 */
+        /* 👑 升級版走道樣式：呈現淺灰色斑馬紋地磚視覺，無框線 */
         .seat-table td.aisle {
-            width: 30px; 
-            background-color: var(--aisle-bg); 
-            border: 2px dashed #b0bec5; 
+            width: 40px; 
+            background: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 10px, #e8e8e8 10px, #e8e8e8 20px);
+            border: none; 
             cursor: default;
-            box-shadow: none;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+            border-radius: 0;
         }
 
         .scroll-hint { text-align: center; font-size: 20px; color: #e67e22; margin-bottom: 20px; font-weight: bold; }
@@ -128,7 +128,7 @@
             #studentPage { display: block !important; }
             .main-container { box-shadow: none; padding: 0; margin: 0; }
             .seat-table td { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 16px; width: 80px; height: 60px;}
-            .seat-table td.aisle { width: 15px; }
+            .seat-table td.aisle { width: 15px; background: #eee !important; border: none; }
         }
     </style>
 </head>
@@ -525,8 +525,8 @@
                     }
                 }
 
-                // ★ 渲染走道 (302 教室在每一欄之間加入不同顏色的走道)
-                if (col < 10) {
+                // ★ 精準走道邏輯：只在 第2, 4, 6, 8 欄的後方加上走道
+                if (col === 2 || col === 4 || col === 6 || col === 8) {
                     html += `<td class="aisle"></td>`;
                 }
             }

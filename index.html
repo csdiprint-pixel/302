@@ -8,8 +8,56 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // 設定 PDF.js 的 Worker 路徑 (必須設定才能在前端解析 PDF)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+       // 綁定檔案上傳事件
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('rosterFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => processUploadedFile(e.target.files[0]));
+    }
+});
+
+async function processUploadedFile(file) {
+    if (!file) return;
+    const fileName = file.name.toLowerCase();
+    const outputBox = document.getElementById('rawRosterInput');
+    outputBox.value = "⏳ 正在解析檔案...";
+
+    // 處理 .docx
+    if (fileName.endsWith('.docx')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            mammoth.extractRawText({arrayBuffer: e.target.result})
+                .then(res => { outputBox.value = res.value; alert("✅ Word 已讀取"); })
+                .catch(err => alert("Word 解析失敗"));
+        };
+        reader.readAsArrayBuffer(file);
+    } 
+    // 處理 .doc (防呆提醒)
+    else if (fileName.endsWith('.doc')) {
+        outputBox.value = "";
+        alert("⚠️ 偵測到舊版 Word (.doc)，請直接打開檔案【全選複製】，並【貼在下方文字方塊】即可。");
+        document.getElementById('rosterFileInput').value = '';
+    } 
+    // 處理 Excel
+    else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            let names = new Set();
+            workbook.SheetNames.forEach(s => {
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[s], {header: 1});
+                let idx = rows[0]?.findIndex(c => String(c).includes("姓名"));
+                if (idx !== -1) {
+                    rows.forEach(r => { if (r[idx]) names.add(r[idx]); });
+                }
+            });
+            outputBox.value = Array.from(names).join("\n");
+            alert(`✅ Excel 已成功抓取 ${names.size} 筆姓名`);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
     </script>
     <style>
         :root {

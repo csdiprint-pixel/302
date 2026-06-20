@@ -149,8 +149,8 @@
             </div>
             
             <div class="form-group">
-                <label>【步驟一】請輸入「班期名稱」與「純學員姓名」並貼在下方：</label>
-                <textarea id="rawRosterInput" rows="5" placeholder="例：&#10;115552「公文寫作班」 受訓日期：113年5月20日&#10;王小明&#10;陳大明..."></textarea>
+                <label>【步驟一】請複製 Word 名冊內的「所有文字」並貼在下方：</label>
+                <textarea id="rawRosterInput" rows="5" placeholder="請在 Word 檔案中按 Ctrl+A 全選、Ctrl+C 複製，然後直接在此貼上..."></textarea>
             </div>
 
             <button class="btn-admin-act btn-blue" onclick="processRosterText()">【步驟二】一鍵解析並啟動新班期</button>
@@ -509,16 +509,18 @@
         table.innerHTML = html;
     }
 
-async function processRosterText() {
+    async function processRosterText() {
         const text = document.getElementById("rawRosterInput").value;
         if (!text.trim()) { alert("請先貼入名冊文字內容！"); return; }
 
         try {
+            // 1. 擷取班期代碼與名稱
             let classCode = "000000";
             let className = "新研習班期";
             const codeMatch = text.match(/(\d{6})[「"']?([^「」"'\s]+)[開班]?[」"']?/);
             if (codeMatch) { classCode = codeMatch[1]; className = `「${codeMatch[2]}」`; }
 
+            // 2. 擷取日期
             let formattedDate = "";
             const dateMatch = text.match(/受訓日期：(\d+)年(\d+)月(\d+)日/);
             if (dateMatch) {
@@ -532,27 +534,50 @@ async function processRosterText() {
             currentClassID = classCode;
             classHeaderTitle = `${classCode}${className}-${formattedDate}`;
 
-            // 【純淨版解析邏輯】直接用空白、換行或逗號切開文字
-            const tokens = text.split(/[\s\t\n\r,，、]+/);
+            // 3. 全新智能解析邏輯：結構化讀取 (絕對不依賴特定機關或職稱)
             const nameSet = new Set();
-            const nameRegex = /^[\u4e00-\u9fa5]{2,4}$/; // 嚴格限制：2~4個中文字
-            
-            tokens.forEach(token => {
-                const clean = token.trim();
-                // 只要符合中文姓名格式，且不包含日期/班級/標題字眼，就當作姓名收入
-                if (nameRegex.test(clean) && !clean.includes("年") && !clean.includes("月") && !clean.includes("日") && !clean.includes("班") && clean !== "姓名" && clean !== "座號" && clean !== "受訓日期") {
-                    nameSet.add(clean);
+            const nameRegex = /^[\u4e00-\u9fa5]{2,4}$/; // 姓名長度限制為 2~4 個中文字
+            // 僅排除常見的「表格表頭欄位名稱」
+            const excludeHeaders = ["姓名", "座號", "機關", "機關學校", "職稱", "單位", "備註", "受訓日期", "簽到"];
+
+            // 將貼上的文字按「換行」切割成一行一行
+            const lines = text.split(/[\n\r]+/);
+
+            lines.forEach(line => {
+                const cleanLine = line.trim();
+                if (!cleanLine) return; // 跳過空行
+
+                // 將該行文字用「空白鍵」或「Tab」切開成多個區塊
+                const parts = cleanLine.split(/[\s\t]+/);
+
+                // 核心邏輯：從每一行的「最後面」往回找，找到的第一個符合人名格式的就是姓名
+                for (let i = parts.length - 1; i >= 0; i--) {
+                    const word = parts[i].trim();
+                    
+                    // 檢查是否符合人名特徵，且不是表頭欄位名稱或日期
+                    if (nameRegex.test(word) && 
+                        !word.includes("年") && 
+                        !word.includes("月") && 
+                        !word.includes("日") && 
+                        !excludeHeaders.includes(word)) {
+                        
+                        nameSet.add(word); // 找到姓名，加入名單
+                        break; // ★ 找到姓名後立刻跳出迴圈，完美略過排在前面的「機關」與「職稱」
+                    }
                 }
             });
+
             officialRoster = Array.from(nameSet);
 
             if (officialRoster.length === 0) {
-                alert("警告：未抓取到任何有效姓名！請確認貼上的文字包含學員姓名。");
+                alert("警告：未抓取到任何有效姓名！請確認貼上的內容格式。");
                 return;
             }
 
+            // 4. 存檔與同步至 Firebase
             dbTitles[currentClassID] = classHeaderTitle;
             dbRosters[currentClassID] = officialRoster;
+            
             localStorage.setItem("seat_db_titles_302", JSON.stringify(dbTitles));
             localStorage.setItem("seat_db_rosters_302", JSON.stringify(dbRosters));
 

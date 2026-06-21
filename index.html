@@ -45,20 +45,30 @@
 
         .seat-table { border-collapse: separate; border-spacing: 6px 8px; min-width: 1200px; margin: 0; }
         
-        /* 座位放大 1.5 倍 */
+       /* 座位基礎設定（移除原本固定的 font-size 與 line-height） */
         .seat-table td { 
             border: 2px solid var(--border-color); 
             text-align: center; 
             vertical-align: middle; 
             width: 112px; 
             height: 82px; 
-            font-size: 22px; 
             font-weight: bold; 
             background-color: #fff; 
             cursor: pointer; 
             border-radius: 6px; 
-            line-height: 1.3; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        
+        /* ★【新增】空位狀態（只有數字）：字體放大到大約 7 分滿，並完美垂直置中 */
+        .seat-table td:not(.booked):not(.aisle):not(.volunteer-seat) {
+            font-size: 48px;       /* 數字放大（7分滿大約是 48px~52px，您可以自由微調） */
+            line-height: 82px;     /* 行高設定與格子高度相同，確保單行數字完美置中 */
+        }
+        
+        /* ★【新增】已經劃位狀態（有座位號 + 名字）：字體縮小回適中大小，避免文字溢出 */
+        .seat-table td.booked { 
+            font-size: 20px; 
+            line-height: 1.3;      /* 兩行字時維持正常的行間距 */
         }
         
         .seat-table td.booked { background-color: var(--booked-bg); color: var(--booked-text); border-color: #8aa4b7; }
